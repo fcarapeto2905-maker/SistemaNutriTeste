@@ -1,57 +1,72 @@
-# Sistema de Gestão Escolar - Banco de Dados Vercel Postgres
+# Diário Escolar Eletrônico - Vercel Postgres
 
-Esquema de banco de dados relacional em SQL projetado para execução no **Vercel Postgres (Neon)** com integridade referencial completa e identificadores inteiros.
-
----
-
-## 🗄️ Estrutura das Tabelas
-
-### 1. `Docente`
-* **`NIF`**: `INT` (Chave Primária) - Identificador único do docente/professor.
-* **`Nome`**: `VARCHAR(150)` - Nome completo do docente.
-
-### 2. `Aluno`
-* **`Matricula`**: `INT` (Chave Primária) - Identificador único do aluno.
-* **`Nome`**: `VARCHAR(150)` - Nome completo do aluno.
-
-### 3. `Turma`
-* **`Codigo`**: `INT` (Chave Primária) - Identificador único da turma.
-* **`Nome_Curso`**: `VARCHAR(150)` - Nome do curso ou disciplina.
-* **`Quantidade_Maxima`**: `INT` - Lotação máxima de alunos na turma.
-* **`Empresa`**: `BOOLEAN` - Indicador se a turma é voltada/patrocinada por empresa.
-* **`Nome_Empresa`**: `VARCHAR(150)` - Nome da empresa parceira (opcional).
-* **`Turno`**: `VARCHAR(50)` - Turno da turma (Ex: Manhã, Tarde, Noite, Integral).
-* **`Data_Inicio`**: `DATE` - Data de início das aulas.
-* **`Data_Fim`**: `DATE` - Data de término das aulas (com validação `Data_Fim >= Data_Inicio`).
-
-### 4. `Professor_Turma` (View: `Turma_Docente`)
-Relacionamento **Muitos-para-Muitos (N:M)** entre `Docente` e `Turma`:
-* **`ID`**: `SERIAL` (`INT` auto-incremento, Chave Primária).
-* **`Codigo_Turma`**: `INT` (Chave Estrangeira -> `Turma.Codigo` com `ON DELETE CASCADE`).
-* **`NIF_Docente`**: `INT` (Chave Estrangeira -> `Docente.NIF` com `ON DELETE RESTRICT`).
-* **`Status_Diario`**: `VARCHAR(50)` - Situação do diário de classe.
-* *Restrição de unicidade*: `UNIQUE (Codigo_Turma, NIF_Docente)` para evitar duplicidade.
-
-### 5. `Aluno_Turma` (View: `Turma_Aluno`)
-Relacionamento **Muitos-para-Muitos (N:M)** entre `Aluno` e `Turma`:
-* **`ID`**: `SERIAL` (`INT` auto-incremento, Chave Primária).
-* **`Codigo_Turma_Aluno`**: `INT` (Chave Estrangeira -> `Turma.Codigo` com `ON DELETE CASCADE`).
-* **`Matricula_Aluno`**: `INT` (Chave Estrangeira -> `Aluno.Matricula` com `ON DELETE RESTRICT`).
-* **`Status_Final`**: `VARCHAR(50)` - Situação final do aluno (Ex: Em Curso, Aprovado, Reprovado).
-* *Restrição de unicidade*: `UNIQUE (Codigo_Turma_Aluno, Matricula_Aluno)` para evitar duplicidade.
+Sistema moderno de gestão escolar e diário eletrônico conectado diretamente ao banco de dados relacional **Vercel Postgres (Neon)**.
 
 ---
 
-## 🚀 Como Executar no Ambiente Vercel
+## 🚀 Funcionalidades Principais
 
-A Vercel disponibiliza a ferramenta nativa **Vercel Postgres (Neon)** para execução direta de comandos SQL:
+1. **Autenticação Segura do Docente**:
+   - Login por **NIF (inteiro)** e **Senha**.
+   - Identificação personalizada e isolamento das turmas vinculadas ao docente.
+   - Contas pré-cadastradas para testes rápidos (ex: Prof. Carlos Eduardo - NIF: 1001 / senha: `senha123`).
 
-1. Acesse o painel da **[Vercel](https://vercel.com)** e abra o projeto **`nutriteste`**.
-2. Clique na aba **Storage** no menu superior.
-3. Se o banco ainda não foi criado:
-   * Clique em **Create Database** e selecione **Postgres** (Neon).
-   * Confirme a região e conclua a criação.
-4. Após o banco estar ativo:
-   * Abra o banco de dados e clique na aba **Query Console** (Editor SQL interativo da Vercel).
-   * Copie o conteúdo do arquivo [`schema.sql`](./schema.sql), cole no console e clique em **Run Query**.
-   * *(Opcional)*: Execute também o script [`seed.sql`](./seed.sql) para inserir dados de teste.
+2. **Dashboard de Turmas**:
+   - Lista dinâmica de turmas vinculadas através da tabela `Professor_Turma` (`Turma_Docente`).
+   - Indicadores em tempo real: total de turmas, alunos atendidos, média geral de notas e status dos diários.
+   - Filtros por curso e turno (Manhã, Tarde, Noite, Integral).
+   - Indicador de parceria empresarial (`Empresa` e `Nome_Empresa`).
+
+3. **Diário de Classe Interativo**:
+   - Consulta detalhada dos estudantes matriculados via `Aluno_Turma` (`Turma_Aluno`).
+   - Lançamento e edição de **Notas (0.00 a 10.00)** com indicador visual por cor.
+   - Controle dinâmico de **Presenças** e **Faltas** com cálculo automático de percentual de frequência.
+   - **Ações em Massa**:
+     - *Presença para Todos Hoje* (+1 presença para toda a turma com 1 clique).
+     - *Calcular Situação Automática* (Aprovado com nota ≥ 7 e freq ≥ 75%, Reprovado por Nota ou Falta).
+   - Alteração do **Status do Diário** da turma (`Em Aberto`, `Em Andamento`, `Concluído`).
+   - Botão para **Impressão** amigável do diário de classe.
+   - Sincronização e persistência direta no banco de dados.
+
+---
+
+## 🗄️ Esquema do Banco de Dados Relacional (Postgres)
+
+* **`Docente`**: `NIF` (INT, PK), `Nome`, `Senha`, `Email`
+* **`Aluno`**: `Matricula` (INT, PK), `Nome`, `Email`
+* **`Turma`**: `Codigo` (INT, PK), `Nome_Curso`, `Quantidade_Maxima`, `Empresa`, `Nome_Empresa`, `Turno`, `Data_Inicio`, `Data_Fim`
+* **`Professor_Turma`** (View: `Turma_Docente`): `ID` (SERIAL PK), `Codigo_Turma` (FK), `NIF_Docente` (FK), `Status_Diario`
+* **`Aluno_Turma`** (View: `Turma_Aluno`): `ID` (SERIAL PK), `Codigo_Turma_Aluno` (FK), `Matricula_Aluno` (FK), `Nota`, `Total_Aulas`, `Presencas`, `Faltas`, `Status_Final`
+* **`Diario_Aula`** & **`Diario_Presenca`**: Histórico detalhado de encontros e diários.
+
+---
+
+## ☁️ Conexão e Implantação na Vercel
+
+### 1. Provisionando o Vercel Postgres
+1. No painel do projeto na **Vercel**, clique na aba **Storage**.
+2. Clique em **Create Database** e selecione **Postgres** (Neon).
+3. Conecte o banco de dados ao projeto `nutriteste`.
+4. As variáveis `POSTGRES_URL`, `POSTGRES_PRISMA_URL` etc. serão injetadas automaticamente no ambiente pela Vercel.
+
+### 2. Criando as Tabelas no Vercel Postgres
+Você pode inicializar as tabelas de duas formas:
+- **Pelo Query Console da Vercel**: Copie o conteúdo de [`schema.sql`](./schema.sql) e [`seed.sql`](./seed.sql), cole no console e execute.
+- **Pela API da Aplicação**: A aplicação possui auto-inicialização e o endpoint `/api/init-db` que cria as tabelas e dados iniciais automaticamente assim que a conexão estiver ativa.
+
+---
+
+## 💻 Execução Local
+
+```bash
+# Instalar dependências
+npm install
+
+# Executar em modo de desenvolvimento
+npm run dev
+
+# Compilar para produção
+npm run build
+npm run start
+```
+Acesse: [http://localhost:3000](http://localhost:3000)
